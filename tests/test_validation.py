@@ -155,7 +155,7 @@ async def test_api_generate_success_and_status():
         assert status_res.status_code == 200
         status_body = status_res.json()
         assert status_body["job_id"] == job_id
-        assert status_body["status"] == "queued"
+        assert status_body["status"] in ("queued", "scripting", "narrating", "rendering", "done")
 
 
 @pytest.mark.asyncio

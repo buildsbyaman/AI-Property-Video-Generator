@@ -1,16 +1,17 @@
 import json
 import logging
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import List
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.jobs import job_store
+from app.jobs import job_store, run_video_generation_job
 from app.schemas import FieldError, JobResponse, ValidationErrorResponse
 from app.validators import parse_and_validate_property_data, validate_and_filter_images
 
@@ -37,10 +38,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger("property_video_gen")
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: clean up output directories older than 24h
+    logger.info("Executing startup cleanup for expired jobs...")
+    job_store.cleanup_old_jobs(max_age_hours=24)
+    yield
+
+
 app = FastAPI(
     title="AI Property Video Generator",
     description="Web service for turning property details and images into promotional videos",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # Enable CORS for local development
@@ -74,6 +85,7 @@ async def health_check():
 )
 async def generate_video(
     request: Request,
+    background_tasks: BackgroundTasks,
     property_name: str = Form(""),
     location: str = Form(""),
     price: str = Form(""),
@@ -125,6 +137,14 @@ async def generate_video(
     # 3. Create job in queue
     warnings = list(image_warnings)
     job = job_store.create(warnings=warnings)
+
+    # 4. Dispatch background generation pipeline
+    background_tasks.add_task(
+        run_video_generation_job,
+        job.job_id,
+        prop_input,
+        valid_images,
+    )
 
     return JSONResponse(
         status_code=status.HTTP_202_ACCEPTED,
