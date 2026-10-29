@@ -77,7 +77,7 @@ Every number, price and proper noun in the generated script must appear in your 
 ## Sample Data and Output
 
 - Input: `sample_data/sample.json` + `sample_data/images/`
-- Output: `samples/sample_output.mp4` (about 30 s, 2-BHK apartment example)
+- Output: `samples/sample_output.mp4` (about 33 s, 3-BHK luxury apartment example)
 
 ## Project Structure
 
