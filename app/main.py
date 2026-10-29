@@ -179,13 +179,22 @@ async def get_sample_data():
     with open(sample_file, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    # Gather sample images
-    images_dir = BASE_DIR / "sample_data" / "images"
+    # Gather sample images (prefer tests/test_images if available)
+    test_images_dir = BASE_DIR / "tests" / "test_images"
+    sample_images_dir = BASE_DIR / "sample_data" / "images"
     image_urls = []
-    if images_dir.exists():
-        for img_name in sorted(os.listdir(images_dir)):
+
+    active_dir = (
+        test_images_dir
+        if (test_images_dir.exists() and any(test_images_dir.iterdir()))
+        else sample_images_dir
+    )
+    url_prefix = "/tests/test_images" if active_dir == test_images_dir else "/sample_data/images"
+
+    if active_dir.exists():
+        for img_name in sorted(os.listdir(active_dir)):
             if img_name.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
-                image_urls.append(f"/sample_data/images/{img_name}")
+                image_urls.append(f"{url_prefix}/{img_name}")
 
     data["images"] = image_urls
     return data
@@ -212,9 +221,11 @@ async def get_job_video(job_id: str):
 async def serve_index():
     return FileResponse(STATIC_DIR / "index.html")
 
-# Mount static files and sample data
+# Mount static files, sample data, and test images
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.mount("/sample_data", StaticFiles(directory=str(BASE_DIR / "sample_data")), name="sample_data")
+if (BASE_DIR / "tests" / "test_images").exists():
+    app.mount("/tests/test_images", StaticFiles(directory=str(BASE_DIR / "tests" / "test_images")), name="test_images")
 
 if __name__ == "__main__":
     import uvicorn
