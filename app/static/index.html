@@ -10,198 +10,207 @@
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <div class="container">
+  <div class="app-wrapper">
     <!-- Header -->
-    <header>
+    <header class="app-header">
       <div class="wordmark">
         <span class="wordmark-dot">●</span>
-        <span>Property Video Generator</span>
+        <span class="wordmark-title">Property Video Generator</span>
       </div>
       <div class="header-actions">
-        <button type="button" class="btn btn-secondary" id="btn-load-sample">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-load-sample">
           Load sample data
         </button>
       </div>
     </header>
 
-    <!-- Form Section -->
-    <form id="generator-form" novalidate>
-      <!-- Card 1: Details -->
-      <section class="card" id="card-details">
-        <div class="card-header">
-          <h2 class="card-title">
-            <span class="step-num">1</span> Property Details
-          </h2>
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Form Section: Two Column Split Dashboard -->
+      <form id="generator-form" class="dashboard-grid" novalidate>
+        
+        <!-- Left Column: Details Card -->
+        <section class="card" id="card-details">
+          <div class="card-header">
+            <h2 class="card-title">
+              <span class="step-num">1</span> Property Details
+            </h2>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group col-full">
+              <label for="property_name">
+                <span>Property name *</span>
+                <span class="hint">2–80 chars</span>
+              </label>
+              <input type="text" id="property_name" name="property_name" placeholder="e.g. Azure Crest Residences" required maxlength="80">
+              <div class="field-error" id="err-property_name"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="location">
+                <span>Location *</span>
+                <span class="hint">2–120 chars</span>
+              </label>
+              <input type="text" id="location" name="location" placeholder="e.g. Palm Beach Road, Navi Mumbai" required maxlength="120">
+              <div class="field-error" id="err-location"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="price">
+                <span>Price *</span>
+                <span class="hint">e.g. ₹1.85 Cr or $450K</span>
+              </label>
+              <input type="text" id="price" name="price" placeholder="e.g. ₹1.85 Crore" required maxlength="60">
+              <div class="field-error" id="err-price"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="property_type">
+                <span>Property type *</span>
+              </label>
+              <select id="property_type" name="property_type" required>
+                <option value="">Select type...</option>
+                <option value="Apartment">Apartment</option>
+                <option value="Villa">Villa</option>
+                <option value="House">House</option>
+                <option value="Plot">Plot</option>
+                <option value="Commercial">Commercial</option>
+                <option value="Other">Other</option>
+              </select>
+              <div class="field-error" id="err-property_type"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="bedrooms">
+                <span>Bedrooms</span>
+                <span class="hint">Optional (e.g. 3 BHK)</span>
+              </label>
+              <input type="text" id="bedrooms" name="bedrooms" placeholder="e.g. 3 BHK">
+              <div class="field-error" id="err-bedrooms"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="area">
+                <span>Area / Size</span>
+                <span class="hint">Optional (e.g. 1,420 sq ft)</span>
+              </label>
+              <input type="text" id="area" name="area" placeholder="e.g. 1,420 sq ft">
+              <div class="field-error" id="err-area"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="contact_cta">
+                <span>Contact / CTA *</span>
+                <span class="hint">e.g. Call / Visit</span>
+              </label>
+              <input type="text" id="contact_cta" name="contact_cta" placeholder="Call +91 98200 12345 or visit azurecrest.in" required maxlength="150">
+              <div class="field-error" id="err-contact_cta"></div>
+            </div>
+
+            <div class="form-group col-full">
+              <label for="key_features">
+                <span>Key features *</span>
+                <span class="hint">3–8 items, one per line</span>
+              </label>
+              <textarea id="key_features" name="key_features" placeholder="Panoramic Creek View&#10;Italian Marble Flooring&#10;Infinity Rooftop Pool&#10;Private Clubhouse & Gym" required></textarea>
+              <div class="field-error" id="err-key_features"></div>
+            </div>
+
+            <!-- Settings Row -->
+            <div class="col-full settings-row">
+              <label class="toggle-group">
+                <input type="checkbox" id="voiceover_enabled" name="voiceover_enabled" class="toggle-checkbox" checked>
+                <span>Voice-over Narration</span>
+              </label>
+
+              <div class="radio-group">
+                <span class="hint">Script Mode:</span>
+                <label class="radio-option">
+                  <input type="radio" name="script_mode" value="template" checked>
+                  <span>Template</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="script_mode" value="ai">
+                  <span>AI</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Column: Photos & Submit Card -->
+        <section class="card photos-card" id="card-images">
+          <div class="card-header">
+            <h2 class="card-title">
+              <span class="step-num">2</span> Property Photos
+            </h2>
+            <span class="hint badge-count" id="photo-counter">0 of 4-8 photos</span>
+          </div>
+
+          <div class="dropzone" id="image-dropzone">
+            <div class="dropzone-icon">📁</div>
+            <div class="dropzone-text">Drag & drop 4–8 photos here, or click to browse</div>
+            <div class="dropzone-subtext">JPG, PNG, WebP (max 8 MB each). Drag thumbnails to reorder.</div>
+            <input type="file" id="file-input" multiple accept="image/jpeg,image/png,image/webp" style="display: none;">
+          </div>
+          <div class="field-error" id="err-images"></div>
+
+          <div class="thumbnail-grid" id="thumbnail-grid"></div>
+
+          <div class="action-footer">
+            <button type="submit" class="btn btn-primary btn-full" id="btn-submit">
+              Generate Video
+            </button>
+          </div>
+        </section>
+      </form>
+
+      <!-- Progress Card (Hidden initially) -->
+      <section class="card progress-card" id="card-progress">
+        <div class="progress-header">
+          <h2 class="card-title">Rendering Video</h2>
+          <span class="stage-badge" id="progress-stage">QUEUED</span>
         </div>
 
-        <div class="form-grid">
-          <div class="form-group col-full">
-            <label for="property_name">
-              <span>Property name *</span>
-              <span class="hint">2–80 chars</span>
-            </label>
-            <input type="text" id="property_name" name="property_name" placeholder="e.g. Azure Crest Residences" required maxlength="80">
-            <div class="field-error" id="err-property_name"></div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+
+        <div class="progress-message" id="progress-message">Preparing assets and initialising pipeline...</div>
+      </section>
+
+      <!-- Result Card (Hidden initially) -->
+      <section class="card result-card" id="card-result">
+        <div class="card-header">
+          <h2 class="card-title">Your Video is Ready</h2>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-start-new">
+            Generate Another
+          </button>
+        </div>
+
+        <div class="notices-box" id="result-notices"></div>
+
+        <div class="result-layout">
+          <div class="video-container">
+            <video id="video-player" controls preload="metadata"></video>
           </div>
 
-          <div class="form-group">
-            <label for="location">
-              <span>Location *</span>
-              <span class="hint">2–120 chars</span>
-            </label>
-            <input type="text" id="location" name="location" placeholder="e.g. Palm Beach Road, Navi Mumbai" required maxlength="120">
-            <div class="field-error" id="err-location"></div>
-          </div>
+          <div class="result-sidebar">
+            <div class="result-actions">
+              <a id="btn-download" href="#" download="property_video.mp4" class="btn btn-primary btn-full">
+                Download MP4
+              </a>
+            </div>
 
-          <div class="form-group">
-            <label for="price">
-              <span>Price *</span>
-              <span class="hint">e.g. ₹85 Lakh or $450,000</span>
-            </label>
-            <input type="text" id="price" name="price" placeholder="e.g. ₹1.85 Crore" required maxlength="60">
-            <div class="field-error" id="err-price"></div>
-          </div>
-
-          <div class="form-group">
-            <label for="property_type">
-              <span>Property type *</span>
-            </label>
-            <select id="property_type" name="property_type" required>
-              <option value="">Select type...</option>
-              <option value="Apartment">Apartment</option>
-              <option value="Villa">Villa</option>
-              <option value="House">House</option>
-              <option value="Plot">Plot</option>
-              <option value="Commercial">Commercial</option>
-              <option value="Other">Other</option>
-            </select>
-            <div class="field-error" id="err-property_type"></div>
-          </div>
-
-          <div class="form-group">
-            <label for="bedrooms">
-              <span>Bedrooms / Config</span>
-              <span class="hint">Optional (e.g. 3 BHK)</span>
-            </label>
-            <input type="text" id="bedrooms" name="bedrooms" placeholder="e.g. 3 BHK">
-            <div class="field-error" id="err-bedrooms"></div>
-          </div>
-
-          <div class="form-group col-full">
-            <label for="area">
-              <span>Area / Dimensions</span>
-              <span class="hint">Optional (e.g. 1,420 sq ft)</span>
-            </label>
-            <input type="text" id="area" name="area" placeholder="e.g. 1,420 sq ft">
-            <div class="field-error" id="err-area"></div>
-          </div>
-
-          <div class="form-group col-full">
-            <label for="key_features">
-              <span>Key features *</span>
-              <span class="hint">3–8 items, one per line</span>
-            </label>
-            <textarea id="key_features" name="key_features" placeholder="Panoramic Creek View&#10;Italian Marble Flooring&#10;Infinity Rooftop Pool&#10;Private Clubhouse & Gym" required></textarea>
-            <div class="field-error" id="err-key_features"></div>
-          </div>
-
-          <div class="form-group col-full">
-            <label for="contact_cta">
-              <span>Contact / CTA text *</span>
-              <span class="hint">e.g. Call 98xxxxxx or visit example.com</span>
-            </label>
-            <input type="text" id="contact_cta" name="contact_cta" placeholder="Call +91 98200 12345 or visit azurecrest.in" required maxlength="150">
-            <div class="field-error" id="err-contact_cta"></div>
-          </div>
-
-          <!-- Settings Row -->
-          <div class="col-full settings-row">
-            <label class="toggle-group">
-              <input type="checkbox" id="voiceover_enabled" name="voiceover_enabled" class="toggle-checkbox" checked>
-              <span>Voice-over Narration</span>
-            </label>
-
-            <div class="radio-group">
-              <span style="color: var(--muted); font-size: 0.85rem;">Script Mode:</span>
-              <label class="radio-option">
-                <input type="radio" name="script_mode" value="template" checked>
-                <span>Template</span>
-              </label>
-              <label class="radio-option">
-                <input type="radio" name="script_mode" value="ai">
-                <span>AI (Anthropic)</span>
-              </label>
+            <div class="script-box-container">
+              <label class="script-label">Generated Scene Plan & Captions</label>
+              <pre class="script-preview" id="script-preview"></pre>
             </div>
           </div>
         </div>
       </section>
-
-      <!-- Card 2: Images -->
-      <section class="card" id="card-images" style="margin-top: 24px;">
-        <div class="card-header">
-          <h2 class="card-title">
-            <span class="step-num">2</span> Property Photos
-          </h2>
-          <span class="hint" id="photo-counter">0 of 4-8 photos</span>
-        </div>
-
-        <div class="dropzone" id="image-dropzone">
-          <div class="dropzone-icon">📁</div>
-          <div class="dropzone-text">Drag & drop 4–8 property images here, or click to browse</div>
-          <div class="dropzone-subtext">JPG, PNG, or WebP (max 8 MB each). Drag thumbnails below to reorder.</div>
-          <input type="file" id="file-input" multiple accept="image/jpeg,image/png,image/webp" style="display: none;">
-        </div>
-        <div class="field-error" id="err-images" style="margin-top: 8px;"></div>
-
-        <div class="thumbnail-grid" id="thumbnail-grid"></div>
-      </section>
-
-      <!-- Submit Button -->
-      <button type="submit" class="btn btn-primary btn-full" id="btn-submit" style="margin-top: 24px;">
-        Generate Video
-      </button>
-    </form>
-
-    <!-- Progress Card (Hidden initially) -->
-    <section class="card progress-card" id="card-progress">
-      <div class="progress-header">
-        <h2 class="card-title">Rendering Video</h2>
-        <span class="stage-badge" id="progress-stage">QUEUED</span>
-      </div>
-
-      <div class="progress-bar-bg">
-        <div class="progress-bar-fill" id="progress-fill"></div>
-      </div>
-
-      <div class="progress-message" id="progress-message">Preparing assets and initialising pipeline...</div>
-    </section>
-
-    <!-- Result Card (Hidden initially) -->
-    <section class="card result-card" id="card-result">
-      <div class="card-header">
-        <h2 class="card-title">Your Video is Ready</h2>
-      </div>
-
-      <div class="notices-box" id="result-notices"></div>
-
-      <div class="video-container">
-        <video id="video-player" controls preload="metadata"></video>
-      </div>
-
-      <div class="result-actions">
-        <a id="btn-download" href="#" download="property_video.mp4" class="btn btn-primary">
-          Download MP4
-        </a>
-        <button type="button" class="btn btn-secondary" id="btn-start-new">
-          Generate Another Video
-        </button>
-      </div>
-
-      <div>
-        <label style="margin-bottom: 8px; display: block; font-weight: 600;">Generated Script & Captions</label>
-        <pre class="script-preview" id="script-preview"></pre>
-      </div>
-    </section>
+    </main>
   </div>
 
   <!-- Toast Notification Container -->
