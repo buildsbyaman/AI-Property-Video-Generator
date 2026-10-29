@@ -17,3 +17,14 @@ async def test_serve_index():
         response = await client.get("/")
         assert response.status_code == 200
         assert "AI Property Video Generator" in response.text
+
+
+@pytest.mark.asyncio
+async def test_get_sample_data():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/api/sample-data")
+        assert response.status_code == 200
+        data = response.json()
+        assert "property_name" in data
+        assert "images" in data
+        assert len(data["images"]) >= 4

@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from pathlib import Path
@@ -148,13 +149,52 @@ async def get_job_status(job_id: str):
     return job.to_response()
 
 
+@app.get("/api/sample-data")
+async def get_sample_data():
+    """Returns sample property data and image paths for the 'Load sample data' feature."""
+    sample_file = BASE_DIR / "sample_data" / "sample.json"
+    if not sample_file.exists():
+        raise HTTPException(status_code=404, detail="sample.json not found")
+
+    with open(sample_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # Gather sample images
+    images_dir = BASE_DIR / "sample_data" / "images"
+    image_urls = []
+    if images_dir.exists():
+        for img_name in sorted(os.listdir(images_dir)):
+            if img_name.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+                image_urls.append(f"/sample_data/images/{img_name}")
+
+    data["images"] = image_urls
+    return data
+
+
+@app.get("/api/jobs/{job_id}/video")
+async def get_job_video(job_id: str):
+    """Serve the generated MP4 video file for a completed job."""
+    video_path = OUTPUTS_DIR / job_id / "video.mp4"
+    if not video_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Video for job '{job_id}' is not yet available",
+        )
+    return FileResponse(
+        str(video_path),
+        media_type="video/mp4",
+        filename=f"property_video_{job_id}.mp4",
+    )
+
+
 # Serve root index.html
 @app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
 async def serve_index():
     return FileResponse(STATIC_DIR / "index.html")
 
-# Mount static files
+# Mount static files and sample data
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+app.mount("/sample_data", StaticFiles(directory=str(BASE_DIR / "sample_data")), name="sample_data")
 
 if __name__ == "__main__":
     import uvicorn
