@@ -139,13 +139,18 @@ def extract_numbers_and_entities(text: str) -> Tuple[Set[str], Set[str]]:
     raw_numbers = re.findall(r"\b\d+(?:[.,]\d+)?\b", text)
     numbers = {n.replace(",", "") for n in raw_numbers}
 
-    # Extract capitalized proper words (ignore common sentence starters)
+    # Extract capitalized proper words (ignore common sentence starters and real estate types)
     common_words = {
         "The", "This", "A", "An", "In", "On", "At", "For", "With", "And", "Or",
         "Welcome", "Featuring", "Call", "Visit", "Contact", "Exclusive", "Now",
         "Available", "Offering", "Experience", "Designed", "Your", "Today",
         "Premier", "Luxury", "Modern", "Spacious", "Prime", "Exceptional",
         "Relax", "Enjoy", "Discover", "Priced", "Offered", "Located", "Listed",
+        "Apartment", "Apartments", "Home", "Homes", "Residence", "Residences",
+        "Villa", "Villas", "Property", "Properties", "Condo", "Condos",
+        "Price", "Prices", "Bedrooms", "Bedroom", "Beds", "Bed", "Area", "Location",
+        "Features", "Feature", "Size", "View", "Views", "Living", "Private",
+        "Details", "Information", "Schedule", "Tour", "Viewing", "Inquire",
     }
     raw_proper = re.findall(r"\b[A-Z][a-zA-Z0-9'-]+\b", text)
     proper_nouns = {w for w in raw_proper if w not in common_words and len(w) > 2}
@@ -191,12 +196,56 @@ def fact_check_script(prop: PropertyInput, script: ScriptOutput) -> Tuple[bool, 
             if num not in input_numbers:
                 return False, f"Invented number '{num}' detected in scene {scene.type}"
 
-        # 3. Check proper nouns
+        # 3. Check proper nouns (handle singular/plural stems)
         for proper in scene_proper:
-            if proper.lower() not in input_lower:
+            p_clean = proper.lower()
+            p_singular = p_clean.rstrip("s")
+            if p_clean not in input_lower and p_singular not in input_lower:
                 return False, f"Invented entity or proper noun '{proper}' in scene {scene.type}"
 
     return True, None
+
+
+def _parse_and_align_scenes(scenes_data: List[dict], num_images: int) -> List[Scene]:
+    """Parse raw scene dictionaries, adapt to exactly num_images, and validate."""
+    if not scenes_data:
+        raise ValueError("AI returned empty scenes list")
+
+    # If the LLM returned extra scenes (e.g. 5 instead of 4), gracefully adapt
+    if len(scenes_data) > num_images:
+        title_scenes = [s for s in scenes_data if s.get("type") == "title"]
+        cta_scenes = [s for s in scenes_data if s.get("type") == "cta"]
+        details_scenes = [s for s in scenes_data if s.get("type") == "details"]
+        feature_scenes = [s for s in scenes_data if s.get("type") not in ("title", "cta", "details")]
+
+        title = title_scenes[0] if title_scenes else scenes_data[0]
+        cta = cta_scenes[-1] if cta_scenes else scenes_data[-1]
+        details = (
+            details_scenes[0]
+            if details_scenes
+            else (scenes_data[-2] if len(scenes_data) > 2 else scenes_data[0])
+        )
+
+        needed_features = max(0, num_images - 3)
+        selected_features = feature_scenes[:needed_features]
+
+        aligned = [title] + selected_features + [details] + [cta]
+        scenes_data = aligned[:num_images]
+
+    elif len(scenes_data) < num_images:
+        raise ValueError(f"AI returned {len(scenes_data)} scenes, expected {num_images}")
+
+    ai_scenes = []
+    for idx, item in enumerate(scenes_data):
+        ai_scenes.append(
+            Scene(
+                type=item.get("type", "feature" if idx > 0 else "title"),
+                image_index=idx,
+                caption=wrap_caption(item.get("caption", "")),
+                voiceover=truncate_voiceover(item.get("voiceover")),
+            )
+        )
+    return ai_scenes
 
 
 def _generate_via_openai(prompt: str, api_key: str, num_images: int) -> List[Scene]:
@@ -222,20 +271,7 @@ def _generate_via_openai(prompt: str, api_key: str, num_images: int) -> List[Sce
     raw_text = (response.choices[0].message.content or "").strip()
     parsed = json.loads(raw_text)
     scenes_data = parsed.get("scenes", [])
-    if len(scenes_data) != num_images:
-        raise ValueError(f"AI returned {len(scenes_data)} scenes, expected {num_images}")
-
-    ai_scenes = []
-    for item in scenes_data:
-        ai_scenes.append(
-            Scene(
-                type=item["type"],
-                image_index=int(item["image_index"]),
-                caption=wrap_caption(item["caption"]),
-                voiceover=truncate_voiceover(item.get("voiceover")),
-            )
-        )
-    return ai_scenes
+    return _parse_and_align_scenes(scenes_data, num_images)
 
 
 def _generate_via_anthropic(prompt: str, api_key: str, num_images: int) -> List[Scene]:
@@ -259,20 +295,7 @@ def _generate_via_anthropic(prompt: str, api_key: str, num_images: int) -> List[
 
     parsed = json.loads(raw_text)
     scenes_data = parsed.get("scenes", [])
-    if len(scenes_data) != num_images:
-        raise ValueError(f"AI returned {len(scenes_data)} scenes, expected {num_images}")
-
-    ai_scenes = []
-    for item in scenes_data:
-        ai_scenes.append(
-            Scene(
-                type=item["type"],
-                image_index=int(item["image_index"]),
-                caption=wrap_caption(item["caption"]),
-                voiceover=truncate_voiceover(item.get("voiceover")),
-            )
-        )
-    return ai_scenes
+    return _parse_and_align_scenes(scenes_data, num_images)
 
 
 def generate_script(
@@ -292,8 +315,12 @@ def generate_script(
         anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
 
         # Handle explicit api_key param
-        if api_key:
-            if api_key.startswith("sk-ant-"):
+        if api_key is not None:
+            if not api_key.strip():
+                # Caller explicitly supplied empty key to force fallback
+                openai_key = ""
+                anthropic_key = ""
+            elif api_key.startswith("sk-ant-"):
                 anthropic_key = api_key
             else:
                 openai_key = api_key
@@ -304,16 +331,21 @@ def generate_script(
             template_script.used_template_fallback = True
             return template_script, warning
 
+        num_features = max(1, num_images - 3)
         prompt = (
             f"You are a real estate video script generator. Using ONLY the facts provided below, "
-            f"generate an MP4 promotional video script consisting of exactly {num_images} scenes.\n"
+            f"generate an MP4 promotional video script consisting of EXACTLY {num_images} scenes.\n"
+            f"SCENE BREAKDOWN (TOTAL EXACTLY {num_images} SCENES):\n"
+            f"1. Scene 1 (image_index: 0): type 'title'\n"
+            f"2. Next {num_features} scene(s): exactly {num_features} 'feature' scene(s) choosing the most prominent features\n"
+            f"3. Scene {2 + num_features}: type 'details'\n"
+            f"4. Scene {num_images} (image_index: {num_images - 1}): type 'cta'\n\n"
             f"RULES:\n"
             f"1. DO NOT invent or assume ANY facts, amenities, distances, ROI, landmarks, or near metro claims.\n"
             f"2. Every number, price, bedroom count, and proper name must come strictly from the inputs.\n"
-            f"3. Exactly 1 'title' scene (image_index 0), then feature scenes, then 1 'details' scene, then 1 'cta' scene (image_index {num_images - 1}).\n"
-            f"4. Captions must be at most 8 words per line.\n"
-            f"5. Voiceover must be at most 25 words per scene.\n"
-            f"6. Respond ONLY with valid JSON in this schema:\n"
+            f"3. Captions must be at most 8 words per line.\n"
+            f"4. Voiceover must be at most 25 words per scene.\n"
+            f"5. Respond ONLY with valid JSON in this schema:\n"
             f'{{"scenes": [{{"type": "title|feature|details|cta", "image_index": 0, "caption": "...", "voiceover": "..."}}]}}\n\n'
             f"INPUTS:\n"
             f"Property Name: {prop.property_name}\n"
