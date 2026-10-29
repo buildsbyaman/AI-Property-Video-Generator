@@ -7,14 +7,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=2.0">
+  <link rel="stylesheet" href="/static/styles.css?v=2.3">
 </head>
 <body>
   <div class="app-wrapper">
     <!-- Header -->
     <header class="app-header">
       <div class="wordmark">
-        <span class="wordmark-dot">●</span>
         <span class="wordmark-title">Property Video Generator</span>
       </div>
       <div class="header-actions">
@@ -22,7 +21,7 @@
           Load sample data
         </button>
         <button type="button" class="btn-theme-toggle" id="btn-theme-toggle" title="Toggle theme">
-          🌙 Dark
+          Dark Mode
         </button>
       </div>
     </header>
@@ -120,25 +119,27 @@
               <div class="field-error" id="err-key_features"></div>
             </div>
 
-            <!-- Redesigned Settings Panel -->
-            <div class="col-full settings-panel">
+            <!-- Redesigned Unified Settings Strip -->
+            <div class="col-full settings-bar">
               <!-- Voice-over Setting -->
-              <div class="setting-item">
-                <div class="setting-text">
-                  <span class="setting-label">Voice-over Narration</span>
-                  <span class="setting-sub">Neural AI speech per scene</span>
+              <div class="setting-group voice-group">
+                <div class="setting-meta">
+                  <label for="voiceover_enabled" class="setting-title-inline">Voice-over Narration</label>
+                  <span class="setting-sub-inline">Neural AI speech per scene</span>
                 </div>
-                <label class="switch-control" title="Toggle voice narration">
+                <label class="switch-control" for="voiceover_enabled" title="Toggle voice narration">
                   <input type="checkbox" id="voiceover_enabled" name="voiceover_enabled" checked>
                   <span class="switch-slider"></span>
                 </label>
               </div>
 
+              <div class="settings-divider"></div>
+
               <!-- Script Mode Segmented Switch -->
-              <div class="setting-item">
-                <div class="setting-text">
-                  <span class="setting-label">Script Generator</span>
-                  <span class="setting-sub">Deterministic or AI-written</span>
+              <div class="setting-group mode-group">
+                <div class="setting-meta">
+                  <span class="setting-title-inline">Script Mode</span>
+                  <span class="setting-sub-inline">Template or AI-written</span>
                 </div>
                 <div class="segmented-control" id="script-mode-control">
                   <button type="button" class="segment-btn active" data-value="template">Template</button>
@@ -246,6 +247,6 @@
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>
 
-  <script src="/static/app.js?v=2.0"></script>
+  <script src="/static/app.js?v=2.3"></script>
 </body>
 </html>

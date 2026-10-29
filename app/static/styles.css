@@ -198,8 +198,11 @@ body {
   gap: 3px;
 }
 
-.form-group.col-full {
+.form-group.col-full,
+.col-full,
+.settings-bar {
   grid-column: 1 / -1;
+  width: 100%;
 }
 
 label {
@@ -263,25 +266,81 @@ textarea {
 }
 
 /* =========================================
-   Redesigned Settings Panel & Voice Switch
+   Unified Settings Bar (Voice-over & Script Mode)
    ========================================= */
+.settings-bar,
 .settings-panel {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-  margin-top: 4px;
-}
-
-.setting-item {
+  grid-column: 1 / -1;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: var(--surface-subtle);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 8px 14px;
+  margin-top: 6px;
+  gap: 14px;
+  box-sizing: border-box;
+}
+
+.setting-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.voice-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1;
+}
+
+.setting-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.setting-title-inline {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  line-height: 1.25;
+  cursor: pointer;
+  user-select: none;
+}
+
+.setting-sub-inline {
+  font-size: 0.68rem;
+  color: var(--muted);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.settings-divider {
+  width: 1px;
+  height: 28px;
+  background-color: var(--border);
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+.mode-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1;
+}
+
+/* Fallback backward compatibility */
+.setting-item {
+  display: flex;
+  align-items: center;
   gap: 10px;
 }
 
@@ -295,11 +354,13 @@ textarea {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text);
+  white-space: nowrap;
 }
 
 .setting-sub {
   font-size: 0.68rem;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 /* Sleek iOS-Style Voiceover Switch */
@@ -358,34 +419,41 @@ textarea {
   display: inline-flex;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 2px;
+  border-radius: 7px;
+  padding: 3px;
   flex-shrink: 0;
+  gap: 3px;
 }
 
 .segment-btn {
   background: transparent;
   border: none;
-  padding: 4px 10px;
-  font-size: 0.75rem;
+  padding: 5px 12px;
+  font-size: 0.76rem;
   font-weight: 500;
   color: var(--muted);
   border-radius: 5px;
   cursor: pointer;
   transition: all var(--transition);
   font-family: inherit;
+  user-select: none;
+}
+
+.segment-btn:hover {
+  color: var(--text);
 }
 
 .segment-btn.active {
-  background: var(--surface-subtle);
-  color: var(--accent);
+  background: var(--accent);
+  color: #FFFFFF;
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(255, 106, 26, 0.35);
 }
 
 [data-theme="dark"] .segment-btn.active {
-  background: #2A2A2A;
-  color: #FF8442;
+  background: var(--accent);
+  color: #000000;
+  font-weight: 700;
 }
 
 /* =========================================
@@ -797,8 +865,14 @@ video {
     grid-template-columns: 1fr;
     height: auto;
   }
+  .settings-bar,
   .settings-panel {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .settings-divider {
+    display: none;
   }
   .result-layout {
     grid-template-columns: 1fr;

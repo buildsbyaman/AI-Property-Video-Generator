@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
     if (btnThemeToggle) {
-      btnThemeToggle.textContent = theme === "dark" ? "☀️ Light" : "🌙 Dark";
+      btnThemeToggle.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
     }
   }
 
@@ -150,12 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderThumbnails() {
     thumbnailGrid.innerHTML = "";
-    photoCounter.textContent = `${uploadedFiles.length} of 4–8 photos`;
-
-    const emptyHint = document.getElementById("empty-gallery-hint");
-    if (emptyHint) {
-      emptyHint.style.display = uploadedFiles.length > 0 ? "none" : "flex";
-    }
+    photoCounter.textContent = `${uploadedFiles.length} of 4-8 photos`;
 
     uploadedFiles.forEach((item, index) => {
       const card = document.createElement("div");
