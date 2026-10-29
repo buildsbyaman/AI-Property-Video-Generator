@@ -47,6 +47,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // --- Script Mode Segmented Control ---
+  const scriptModeInput = document.getElementById("script_mode");
+  const segmentBtns = document.querySelectorAll(".segment-btn");
+
+  segmentBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      segmentBtns.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      if (scriptModeInput) {
+        scriptModeInput.value = btn.dataset.value;
+      }
+    });
+  });
+
   // --- Toast Notifications ---
   function showToast(message, isError = false) {
     const toast = document.createElement("div");
@@ -136,7 +150,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderThumbnails() {
     thumbnailGrid.innerHTML = "";
-    photoCounter.textContent = `${uploadedFiles.length} of 4-8 photos`;
+    photoCounter.textContent = `${uploadedFiles.length} of 4–8 photos`;
+
+    const emptyHint = document.getElementById("empty-gallery-hint");
+    if (emptyHint) {
+      emptyHint.style.display = uploadedFiles.length > 0 ? "none" : "flex";
+    }
 
     uploadedFiles.forEach((item, index) => {
       const card = document.createElement("div");
@@ -218,10 +237,11 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("contact_cta").value = sample.contact_cta || "";
       document.getElementById("voiceover_enabled").checked = sample.voiceover_enabled !== false;
 
-      const scriptModeRadio = document.querySelector(
-        `input[name="script_mode"][value="${sample.script_mode || "template"}"]`
-      );
-      if (scriptModeRadio) scriptModeRadio.checked = true;
+      const targetMode = sample.script_mode || "template";
+      if (scriptModeInput) scriptModeInput.value = targetMode;
+      segmentBtns.forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.value === targetMode);
+      });
 
       // Load sample images
       if (sample.images && sample.images.length > 0) {
@@ -328,7 +348,7 @@ document.addEventListener("DOMContentLoaded", () => {
     formData.append("contact_cta", document.getElementById("contact_cta").value.trim());
     formData.append("voiceover_enabled", document.getElementById("voiceover_enabled").checked);
 
-    const scriptMode = document.querySelector('input[name="script_mode"]:checked').value;
+    const scriptMode = scriptModeInput ? scriptModeInput.value : "template";
     formData.append("script_mode", scriptMode);
 
     // Append images
