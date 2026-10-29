@@ -41,12 +41,14 @@ Open http://localhost:8000, click **Load sample data**, then **Generate video**.
 
 ## Configuration (`.env`)
 
-| Variable            | Required | Purpose                                                 |
-| ------------------- | -------- | ------------------------------------------------------- |
-| `ANTHROPIC_API_KEY` | No       | Enables AI script mode. Without it, templates are used. |
-| `ANTHROPIC_MODEL`   | No       | Model name for AI script mode (see `.env.example`)      |
-| `ENABLE_TTS`        | No       | `true`/`false`, default `true`                          |
-| `MAX_UPLOAD_MB`     | No       | Per-image limit, default `8`                            |
+| Variable            | Required | Purpose                                                      |
+| ------------------- | -------- | ------------------------------------------------------------ |
+| `OPENAI_API_KEY`    | No       | Enables OpenAI AI script mode (`gpt-4o-mini`). Falls back to template if empty. |
+| `OPENAI_MODEL`      | No       | Model name for OpenAI script mode (default `gpt-4o-mini`)    |
+| `ANTHROPIC_API_KEY` | No       | Optional alternative: Claude AI script mode                  |
+| `ANTHROPIC_MODEL`   | No       | Model name for Claude script mode (default `claude-3-5-sonnet-20241022`) |
+| `ENABLE_TTS`        | No       | `true`/`false`, default `true`                               |
+| `MAX_UPLOAD_MB`     | No       | Per-image limit, default `8`                                 |
 
 Never commit `.env`. Use only synthetic data and no real customer information.
 

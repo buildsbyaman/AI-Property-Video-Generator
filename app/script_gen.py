@@ -145,6 +145,7 @@ def extract_numbers_and_entities(text: str) -> Tuple[Set[str], Set[str]]:
         "Welcome", "Featuring", "Call", "Visit", "Contact", "Exclusive", "Now",
         "Available", "Offering", "Experience", "Designed", "Your", "Today",
         "Premier", "Luxury", "Modern", "Spacious", "Prime", "Exceptional",
+        "Relax", "Enjoy", "Discover", "Priced", "Offered", "Located", "Listed",
     }
     raw_proper = re.findall(r"\b[A-Z][a-zA-Z0-9'-]+\b", text)
     proper_nouns = {w for w in raw_proper if w not in common_words and len(w) > 2}
@@ -198,6 +199,82 @@ def fact_check_script(prop: PropertyInput, script: ScriptOutput) -> Tuple[bool, 
     return True, None
 
 
+def _generate_via_openai(prompt: str, api_key: str, num_images: int) -> List[Scene]:
+    """Call OpenAI Chat Completions API with structured JSON output."""
+    from openai import OpenAI
+
+    client = OpenAI(api_key=api_key)
+    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a strict, factual real estate video script assistant. Output JSON only.",
+            },
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.2,
+        response_format={"type": "json_object"},
+    )
+
+    raw_text = (response.choices[0].message.content or "").strip()
+    parsed = json.loads(raw_text)
+    scenes_data = parsed.get("scenes", [])
+    if len(scenes_data) != num_images:
+        raise ValueError(f"AI returned {len(scenes_data)} scenes, expected {num_images}")
+
+    ai_scenes = []
+    for item in scenes_data:
+        ai_scenes.append(
+            Scene(
+                type=item["type"],
+                image_index=int(item["image_index"]),
+                caption=wrap_caption(item["caption"]),
+                voiceover=truncate_voiceover(item.get("voiceover")),
+            )
+        )
+    return ai_scenes
+
+
+def _generate_via_anthropic(prompt: str, api_key: str, num_images: int) -> List[Scene]:
+    """Call Anthropic Messages API."""
+    from anthropic import Anthropic
+
+    client = Anthropic(api_key=api_key)
+    model = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
+
+    response = client.messages.create(
+        model=model,
+        max_tokens=1000,
+        temperature=0.2,
+        system="You are a strict, factual real estate video script assistant. Output JSON only.",
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    raw_text = response.content[0].text.strip()
+    if "```" in raw_text:
+        raw_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text, flags=re.MULTILINE).strip()
+
+    parsed = json.loads(raw_text)
+    scenes_data = parsed.get("scenes", [])
+    if len(scenes_data) != num_images:
+        raise ValueError(f"AI returned {len(scenes_data)} scenes, expected {num_images}")
+
+    ai_scenes = []
+    for item in scenes_data:
+        ai_scenes.append(
+            Scene(
+                type=item["type"],
+                image_index=int(item["image_index"]),
+                caption=wrap_caption(item["caption"]),
+                voiceover=truncate_voiceover(item.get("voiceover")),
+            )
+        )
+    return ai_scenes
+
+
 def generate_script(
     prop: PropertyInput,
     num_images: int,
@@ -205,74 +282,55 @@ def generate_script(
 ) -> Tuple[ScriptOutput, Optional[str]]:
     """
     Main entry point for script generation.
-    Generates via Anthropic API if script_mode == 'ai' and API key is present.
+    Generates via OpenAI API (or Anthropic API) if script_mode == 'ai'.
     Strictly validates and fact-checks; falls back to template on any failure.
     """
     warning = None
 
     if prop.script_mode.value == "ai":
-        actual_key = api_key or os.getenv("ANTHROPIC_API_KEY", "").strip()
-        if not actual_key:
-            warning = "Template fallback used: ANTHROPIC_API_KEY is not configured."
+        openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+        anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+
+        # Handle explicit api_key param
+        if api_key:
+            if api_key.startswith("sk-ant-"):
+                anthropic_key = api_key
+            else:
+                openai_key = api_key
+
+        if not openai_key and not anthropic_key:
+            warning = "Template fallback used: OPENAI_API_KEY is not configured."
             template_script = generate_template_script(prop, num_images)
             template_script.used_template_fallback = True
             return template_script, warning
 
+        prompt = (
+            f"You are a real estate video script generator. Using ONLY the facts provided below, "
+            f"generate an MP4 promotional video script consisting of exactly {num_images} scenes.\n"
+            f"RULES:\n"
+            f"1. DO NOT invent or assume ANY facts, amenities, distances, ROI, landmarks, or near metro claims.\n"
+            f"2. Every number, price, bedroom count, and proper name must come strictly from the inputs.\n"
+            f"3. Exactly 1 'title' scene (image_index 0), then feature scenes, then 1 'details' scene, then 1 'cta' scene (image_index {num_images - 1}).\n"
+            f"4. Captions must be at most 8 words per line.\n"
+            f"5. Voiceover must be at most 25 words per scene.\n"
+            f"6. Respond ONLY with valid JSON in this schema:\n"
+            f'{{"scenes": [{{"type": "title|feature|details|cta", "image_index": 0, "caption": "...", "voiceover": "..."}}]}}\n\n'
+            f"INPUTS:\n"
+            f"Property Name: {prop.property_name}\n"
+            f"Location: {prop.location}\n"
+            f"Price: {prop.price}\n"
+            f"Type: {prop.property_type.value}\n"
+            f"Bedrooms: {prop.bedrooms or 'Not specified'}\n"
+            f"Area: {prop.area or 'Not specified'}\n"
+            f"Key Features:\n" + "\n".join(f"- {f}" for f in prop.key_features) + "\n"
+            f"Contact / CTA: {prop.contact_cta}\n"
+        )
+
         try:
-            from anthropic import Anthropic
-            client = Anthropic(api_key=actual_key)
-            model = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
-
-            prompt = (
-                f"You are a real estate video script generator. Using ONLY the facts provided below, "
-                f"generate an MP4 promotional video script consisting of exactly {num_images} scenes.\n"
-                f"RULES:\n"
-                f"1. DO NOT invent or assume ANY facts, amenities, distances, ROI, landmarks, or near metro claims.\n"
-                f"2. Every number, price, bedroom count, and proper name must come strictly from the inputs.\n"
-                f"3. Exactly 1 'title' scene (image_index 0), then feature scenes, then 1 'details' scene, then 1 'cta' scene (image_index {num_images - 1}).\n"
-                f"4. Captions must be at most 8 words per line.\n"
-                f"5. Voiceover must be at most 25 words per scene.\n"
-                f"6. Respond ONLY with valid JSON in this schema:\n"
-                f'{{"scenes": [{{"type": "title|feature|details|cta", "image_index": 0, "caption": "...", "voiceover": "..."}}]}}\n\n'
-                f"INPUTS:\n"
-                f"Property Name: {prop.property_name}\n"
-                f"Location: {prop.location}\n"
-                f"Price: {prop.price}\n"
-                f"Type: {prop.property_type.value}\n"
-                f"Bedrooms: {prop.bedrooms or 'Not specified'}\n"
-                f"Area: {prop.area or 'Not specified'}\n"
-                f"Key Features:\n" + "\n".join(f"- {f}" for f in prop.key_features) + "\n"
-                f"Contact / CTA: {prop.contact_cta}\n"
-            )
-
-            response = client.messages.create(
-                model=model,
-                max_tokens=1000,
-                temperature=0.2,
-                system="You are a strict, factual real estate video script assistant. Output JSON only.",
-                messages=[{"role": "user", "content": prompt}],
-            )
-
-            raw_text = response.content[0].text.strip()
-            # Clean markdown codeblocks if enclosed in ```json
-            if "```" in raw_text:
-                raw_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text, flags=re.MULTILINE).strip()
-
-            parsed = json.loads(raw_text)
-            scenes_data = parsed.get("scenes", [])
-            if len(scenes_data) != num_images:
-                raise ValueError(f"AI returned {len(scenes_data)} scenes, expected {num_images}")
-
-            ai_scenes = []
-            for item in scenes_data:
-                ai_scenes.append(
-                    Scene(
-                        type=item["type"],
-                        image_index=int(item["image_index"]),
-                        caption=wrap_caption(item["caption"]),
-                        voiceover=truncate_voiceover(item.get("voiceover")),
-                    )
-                )
+            if openai_key:
+                ai_scenes = _generate_via_openai(prompt, openai_key, num_images)
+            else:
+                ai_scenes = _generate_via_anthropic(prompt, anthropic_key, num_images)
 
             ai_script = ScriptOutput(scenes=ai_scenes, used_template_fallback=False)
 

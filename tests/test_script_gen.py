@@ -131,3 +131,37 @@ def test_ai_mode_fallback_without_key(sample_property):
     assert len(script.scenes) == 5
     assert warning is not None
     assert "Template fallback used" in warning
+
+
+def test_openai_script_generation_mocked(sample_property, monkeypatch):
+    from unittest.mock import MagicMock
+    import json
+
+    mock_openai_response = MagicMock()
+    mock_choice = MagicMock()
+    mock_choice.message.content = json.dumps({
+        "scenes": [
+            {"type": "title", "image_index": 0, "caption": "Silver Oak Manor", "voiceover": "Welcome to Silver Oak Manor."},
+            {"type": "feature", "image_index": 1, "caption": "Gourmet Chef Kitchen", "voiceover": "Featuring Gourmet Chef Kitchen."},
+            {"type": "feature", "image_index": 2, "caption": "Heated Saltwater Pool", "voiceover": "Relax by Heated Saltwater Pool."},
+            {"type": "details", "image_index": 3, "caption": "House $1,450,000", "voiceover": "Priced at $1,450,000."},
+            {"type": "cta", "image_index": 4, "caption": "Call 555-0199", "voiceover": "Contact us today at 555-0199."},
+        ]
+    })
+    mock_openai_response.choices = [mock_choice]
+
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value = mock_openai_response
+
+    monkeypatch.setattr("openai.OpenAI", lambda api_key: mock_client)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-openai-key")
+
+    sample_property.script_mode = ScriptMode.AI
+    script, warning = generate_script(sample_property, num_images=5)
+
+    assert script.used_template_fallback is False
+    assert len(script.scenes) == 5
+    assert script.scenes[0].type == "title"
+    assert script.scenes[0].caption == "Silver Oak Manor"
+    assert warning is None
+
