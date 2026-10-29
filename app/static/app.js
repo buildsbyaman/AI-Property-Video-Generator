@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnStartNew = document.getElementById("btn-start-new");
   const resultNotices = document.getElementById("result-notices");
   const scriptPreview = document.getElementById("script-preview");
+  const btnThemeToggle = document.getElementById("btn-theme-toggle");
   const toastContainer = document.getElementById("toast-container");
 
   // State
@@ -25,6 +26,26 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentJobId = null;
   let pollInterval = null;
   let dragSrcIndex = null;
+
+  // --- Theme Toggle (Light default) ---
+  let currentTheme = localStorage.getItem("theme") || "light";
+
+  function applyTheme(theme) {
+    currentTheme = theme;
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+    if (btnThemeToggle) {
+      btnThemeToggle.textContent = theme === "dark" ? "☀️ Light" : "🌙 Dark";
+    }
+  }
+
+  applyTheme(currentTheme);
+
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener("click", () => {
+      applyTheme(currentTheme === "dark" ? "light" : "dark");
+    });
+  }
 
   // --- Toast Notifications ---
   function showToast(message, isError = false) {
