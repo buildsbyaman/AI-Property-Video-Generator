@@ -1,0 +1,18 @@
+{
+  "property_name": "Azure Crest Residences",
+  "location": "Palm Beach Road, Navi Mumbai",
+  "price": "₹1.85 Crore",
+  "property_type": "Apartment",
+  "bedrooms": "3 BHK",
+  "area": "1,420 sq ft",
+  "key_features": [
+    "Panoramic Creek View",
+    "Italian Marble Flooring",
+    "Infinity Rooftop Pool",
+    "Private Clubhouse & Gym",
+    "Covered Podium Parking"
+  ],
+  "contact_cta": "Call +91 98200 12345 or visit azurecrest.in",
+  "voiceover_enabled": true,
+  "script_mode": "template"
+}
