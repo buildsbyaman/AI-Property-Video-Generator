@@ -1,0 +1,7 @@
+Background Audio Loop - License & Attribution
+
+File: assets/audio/background.mp3
+Description: Soft ambient harmonic pad chord loop (Cmaj9/Am9) synthesized specifically for the AI Property Video Generator.
+Duration: 30.0 seconds, stereo 44.1 kHz MP3.
+License: Creative Commons Zero (CC0) 1.0 Universal / Public Domain.
+Permission: Free for commercial and non-commercial use, modification, and distribution without attribution.
